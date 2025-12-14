@@ -1,9 +1,10 @@
 "use client";
 
+import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
 
-export default function CheckoutPage() {
+// 👇 Inner component that uses useSearchParams
+function CheckoutContent() {
   const searchParams = useSearchParams();
 
   const productName = searchParams.get("name");
@@ -30,25 +31,22 @@ export default function CheckoutPage() {
       product: productName,
       quantity: 1,
       totalAmount: Number(productPrice),
-
       address: address,
     };
 
-    try {
-      const res = await fetch("http://localhost:5000/api/orders", {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/orders`,
+      {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(orderData),
-      });
-
-      const data = await res.json();
-
-      if (data.orderId) {
-        window.location.href = `/order-confirmation?id=${data.orderId}`;
       }
-    } catch (error) {
-      console.error("Checkout error:", error);
-      alert("Failed to place order");
+    );
+
+    const data = await res.json();
+
+    if (data.orderId) {
+      window.location.href = `/order-confirmation?id=${data.orderId}`;
     }
   };
 
@@ -59,7 +57,6 @@ export default function CheckoutPage() {
       </h1>
 
       <div className="max-w-3xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
-        
         {/* ORDER SUMMARY */}
         <div className="bg-white p-6 rounded shadow">
           <h2 className="text-xl font-semibold mb-4">
@@ -135,8 +132,16 @@ export default function CheckoutPage() {
             </button>
           </form>
         </div>
-
       </div>
     </main>
+  );
+}
+
+// 👇 Wrapper with Suspense (THIS FIXES THE BUILD ERROR)
+export default function CheckoutPage() {
+  return (
+    <Suspense fallback={<div className="p-10">Loading checkout...</div>}>
+      <CheckoutContent />
+    </Suspense>
   );
 }
